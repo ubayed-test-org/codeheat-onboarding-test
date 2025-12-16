@@ -11,14 +11,14 @@ jobs:
   invite-and-add:
     # Do not run on forks + ensure label exists
     if: |
-      github.repository_owner == 'FOSSASIA' &&
+      github.repository_owner == 'ubayed-test-org' &&
       github.event.action == 'labeled' &&
       github.event.label.name == 'org-invite'
 
     runs-on: ubuntu-latest
 
     env:
-      ORG_NAME: "FOSSASIA"
+      ORG_NAME: "ubayed-test-org"
       TEAM_SLUG: "codeheat"
 
     steps:
