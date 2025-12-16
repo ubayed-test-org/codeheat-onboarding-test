@@ -37,10 +37,7 @@ jobs:
         with:
           github-token: ${{ secrets.ORG_ADMIN_TOKEN }}
           script: |
-            // Validate that the token is present
-            if (!github.token || github.token.trim() === "") {
-              throw new Error("ORG_ADMIN_TOKEN is missing or empty. Please set the required secret.");
-            }
+
             const org = process.env.ORG_NAME;
             const team_slug = process.env.TEAM_SLUG;
             const issue = context.payload.issue;
