@@ -24,8 +24,10 @@ jobs:
     steps:
 
       - name: Debug secret presence
+        env:
+          ORG_ADMIN_TOKEN: ${{ secrets.ORG_ADMIN_TOKEN }}
         run: |
-          if [ -z "${{ secrets.ORG_ADMIN_TOKEN }}" ]; then
+          if [ -z "${ORG_ADMIN_TOKEN}" ]; then
             echo "❌ ORG_ADMIN_TOKEN is NOT available"
             exit 1
           else
@@ -86,14 +88,32 @@ jobs:
                 username,
               });
             } catch (error) {
-              if (error.status !== 404) throw error;
+              if (error.status !== 404) {
+                await comment(
+                  `❌ **Onboarding failed**\n\n` +
+                  `Could not retrieve organization membership for \`@${username}\` in \`${org}\`.\n` +
+                  `Error: \`${error.message}\``
+                );
+                core.setFailed(error.message);
+                return;
+              }
 
-              membership = await github.rest.orgs.setMembershipForUser({
-                org,
-                username,
-              });
-
-              invited = true;
+              // User not found, attempt to invite
+              try {
+                membership = await github.rest.orgs.setMembershipForUser({
+                  org,
+                  username,
+                });
+                invited = true;
+              } catch (inviteError) {
+                await comment(
+                  `❌ **Onboarding failed**\n\n` +
+                  `Could not invite \`@${username}\` to organization \`${org}\`.\n` +
+                  `Error: \`${inviteError.message}\``
+                );
+                core.setFailed(inviteError.message);
+                return;
+              }
             }
 
             // ---- Team membership (non-fatal) ----
@@ -118,13 +138,22 @@ jobs:
               ? `• Team membership: **${teamMembership.data.state}**\n`
               : `• Team membership: ❌ **failed** - please add manually to \`${team_slug}\`\n`;
 
+            let actionMessage = '';
+
+            if (membership.data.state === 'pending') {
+              actionMessage =
+                `\nℹ️ Please accept the GitHub organization invitation ` +
+                `from your notifications or email to complete onboarding.`;
+            } else {
+              actionMessage =
+                `\nℹ️ You are already an active member. No further action is required.`;
+            }
+
             await comment(
               `✅ **Onboarding request processed for @${username}**\n\n` +
               orgStatusLine +
               teamStatusLine +
-              (invited
-                ? `\nℹ️ Please accept the GitHub invitation from your notifications or email.`
-                : `\nℹ️ You are already a member. No further action is required.`)
+              actionMessage
             );
 
             // ---- Close issue (non-fatal) ----
