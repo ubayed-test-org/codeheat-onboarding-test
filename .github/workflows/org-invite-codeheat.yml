@@ -51,21 +51,6 @@ jobs:
               }
             }
 
-            // ---- Validate admin token presence ----
-            try {
-              if (!process.env.GITHUB_TOKEN) {
-                throw new Error('ORG_ADMIN_TOKEN is missing');
-              }
-            } catch (err) {
-              await comment(
-                `❌ **Onboarding temporarily unavailable**\n\n` +
-                `The organization admin token is not configured.\n` +
-                `Please notify a maintainer and try again later.`
-              );
-              core.setFailed(err.message);
-              return;
-            }
-
             // ---- Validate team exists ----
             try {
               await github.rest.teams.getByName({
